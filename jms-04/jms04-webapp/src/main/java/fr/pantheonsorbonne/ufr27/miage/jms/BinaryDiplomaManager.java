@@ -7,6 +7,7 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.jms.BytesMessage;
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
@@ -14,6 +15,8 @@ import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Queue;
 import javax.jms.Session;
+
+import com.sun.mail.iap.ByteArray;
 
 import fr.pantheonsorbonne.ufr27.miage.DiplomaInfo;
 import fr.pantheonsorbonne.ufr27.miage.dto.BinaryDiplomaDTO;
@@ -41,7 +44,7 @@ public class BinaryDiplomaManager implements Closeable {
 	@PostConstruct
 	void init() {
 		try {
-			connection = connectionFactory.createConnection("nicolas", "nicolas");
+			connection = connectionFactory.createConnection("alexis", "perez");
 			connection.start();
 			session = connection.createSession();
 			binDiplomaConsumer = session.createConsumer(filesQueue);
@@ -53,14 +56,26 @@ public class BinaryDiplomaManager implements Closeable {
 	}
 
 	public BinaryDiplomaDTO consume() {
+		try {
+			BytesMessage message = (BytesMessage) binDiplomaConsumer.receive();
+			byte[] payload = new byte[(int) message.getBodyLength()];
+			message.readBytes(payload);
 
+			BinaryDiplomaDTO dto = new BinaryDiplomaDTO();
+			dto.setId(message.getIntProperty("id"));
+			dto.setData(payload);
+			return dto;
+		} catch (JMSException e) {
+			System.out.println("failed to consume message ");
+			return null;
+		}
 		// receive a Byte Message from the consumer
 		// create a byte array sized after the message's payload body length
 		// read the message on the byte array
 		// create a BinaryDiplomaDTO containing the id of the diploma and the data
 		// return the DTO
 
-		return null;
+	
 	}
 
 	public void requestBinDiploma(DiplomaInfo info) {
